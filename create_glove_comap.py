@@ -1,4 +1,5 @@
 import sys
+import os
 import cPickle as pickle
 import numpy as np
 
@@ -25,14 +26,23 @@ def countCooccurrenceProduct(visit, coMap):
 			if key2 in coMap: coMap[key2] += product
 			else: coMap[key2] = product
 
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
+
+def enablePrint():
+    sys.stdout = sys.__stdout__
+
 if __name__=='__main__':
 	seqFile = sys.argv[1]
 	treeFile = sys.argv[2]
-	outFile = 'cooccurrenceMap.pk'
+	outFile = sys.argv[3]
 
-	maxLevel = 5
+	maxLevel = 2
 	seqs = pickle.load(open(seqFile, 'rb'))
 	treeList = [pickle.load(open(treeFile+'.level'+str(i)+'.pk', 'rb')) for i in range(1,maxLevel+1)]
+
+	blockPrint()
+	print 'I want no logged output'
 
 	coMap = {}
 	count = 0
@@ -44,4 +54,7 @@ if __name__=='__main__':
 				augmentVisit(visit, code, treeList)
 			countCooccurrenceProduct(visit, coMap)
 	
-	pickle.dump(coMap, open(outFile, 'wb'), -1)
+	with open(outFile + '.pk', 'wb') as f:
+		pickle.dump(coMap, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+	enablePrint()

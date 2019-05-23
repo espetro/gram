@@ -1,5 +1,5 @@
 import sys, time, random
-
+import os
 import numpy as np
 
 import theano
@@ -75,7 +75,9 @@ def weightFunction(x):
 		return 1
 
 def load_data(infile):
-	cooccurMap = pickle.load(open(infile, 'rb'))
+	with open(infile + ".pk", 'rb') as f:
+		cooccurMap = pickle.load(f)
+	
 	I = []
 	J = []
 	Weight = []
@@ -108,8 +110,10 @@ def train_glove(infile, inputSize=20000, batchSize=100, dimensionSize=100, maxEp
 	grads = T.grad(cost, wrt=tparams.values())
 	f_grad_shared, f_update = adadelta(tparams, grads, weightVector, iVector, jVector, cost)
 
-	logFile = outfile + '.log'
+	# logFile = outfile + '.log'
 	print 'training start'
+	
+	blockPrint()
 	for epoch in xrange(maxEpochs):
 		costVector = []
 		iteration = 0
@@ -123,18 +127,30 @@ def train_glove(infile, inputSize=20000, batchSize=100, dimensionSize=100, maxEp
 			if (iteration % 1000 == 0):
 				buf = 'epoch:%d, iteration:%d/%d, cost:%f' % (epoch, iteration, n_batches, cost)
 				print buf
-				print2file(buf, logFile)
+				# print2file(buf, logFile)
 			iteration += 1
 		trainCost = np.mean(costVector)
 		buf = 'epoch:%d, cost:%f' % (epoch, trainCost)
 		print buf
-		print2file(buf, logFile)
+		# print2file(buf, logFile)
 		tempParams = unzip(tparams)
-		np.savez_compressed(outfile + '.' + str(epoch), **tempParams)
+
+		if (maxEpochs - epoch) < 3:
+			# store just last 2-3 epochs
+			np.savez_compressed(outfile + '.' + str(epoch), **tempParams)
+
+	enablePrint()
+
 
 def get_rootCode(treeFile):
 	tree = pickle.load(open(treeFile, 'rb'))
 	return tree.values()[0][1]
+
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
+
+def enablePrint():
+    sys.stdout = sys.__stdout__
 
 if __name__=='__main__':
 	infile = sys.argv[1]
@@ -144,5 +160,6 @@ if __name__=='__main__':
 	inputDimSize = get_rootCode(treeFile+'.level2.pk') + 1
 	embDimSize = 128
 	batchSize = 100
-	maxEpochs = 50
+	maxEpochs = 100
+
 	train_glove(infile, inputSize=inputDimSize, batchSize=batchSize, dimensionSize=embDimSize, maxEpochs=maxEpochs, outfile=outfile)

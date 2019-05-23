@@ -354,7 +354,10 @@ def train_GRAM(
             bestTrainCost = trainCost
             bestEpoch = epoch
             tempParams = unzip(tparams)
-            np.savez_compressed(outFile + '.' + str(epoch), **tempParams)
+
+            if (max_epochs - epoch) < 2:
+                # save just 2-3 last epochs
+                np.savez_compressed(outFile + '.' + str(epoch), **tempParams)
     buf = 'Best Epoch:%d, Avg_Duration:%f, Train_Cost:%f, Valid_Cost:%f, Test_Cost:%f' % (bestEpoch, epochDuration/max_epochs, bestTrainCost, bestValidCost, bestTestCost)
     print buf
     print2file(buf, logFile)
